@@ -1,5 +1,4 @@
 <?php
-
     // Include config conection file
     include ('Configuration/config.php');
     // include ('Queries/queries.php');
@@ -16,8 +15,16 @@
     $result = sqlsrv_query ($conn, $latestCode_query);
     $latestCode = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC); 
     $latestCodePlus =  $latestCode["Code"];
-    $latestCodePlus += 1; 
+    $latestCodePlus += 1;
 
+    $quantity_enter = 0;
+
+    // Get the latest Code Number from Table ReceiptLine and increment
+    $latestCodeNumber_query = "SELECT TOP 1 Number FROM ReceiptLine ORDER BY Number DESC";
+    $result = sqlsrv_query ($conn, $latestCodeNumber_query);
+    $latestCodeNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC); 
+    $latestCodeNumberPlus =  $latestCodeNumber["Number"];
+    $latestCodeNumberPlus += 1;
 
     if(isset($_POST['submit'])) {
         //values to post
@@ -27,19 +34,45 @@
         $text_items = $_POST['items'];
         $warehouse_code = $_POST['lista1'];
 
-        // if(){
-
-        // }
-        $ReceiptLineNumber_query = "SELECT TOP 1 ReceiptLineNumber FROM Item where Item.Owner = $owner_code AND ReceiptNumber = $jobNumber";
+        //Getting ReceiptLineNumber
+        $ReceiptLineNumber_query = "SELECT TOP 1 ReceiptLineNumber FROM Item where Item.Owner = $owner_code AND ReceiptNumber = $jobNumber ORDER by code desc";
         $result = sqlsrv_query ($conn, $ReceiptLineNumber_query); 
-        $ReceiptLineNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC); 
-        $ReceiptLineNumberPlus =  $ReceiptLineNumber["ReceiptLineNumber"]; 
-        $ReceiptLineNumberPlus += 1; 
+        $ReceiptLineNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $ReceiptLineNumberPlus =  $ReceiptLineNumber["ReceiptLineNumber"];
 
+        //Get the lastest ProductCode in BD
+        $productCode_query = "SELECT TOP 1 ProductCode FROM Item ORDER by Code desc";
+        $result = sqlsrv_query ($conn, $productCode_query);
+        $checkProductCode = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $latestProductCode = $checkProductCode["ProductCode"];
+
+        //Get the latest JobNumber in BD
+        $jobNumber_query = "SELECT TOP 1 ReceiptNumber FROM Item ORDER by Code desc";
+        $result = sqlsrv_query ($conn, $jobNumber_query);
+        $GetReceiptNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $latestReceiptNumber = $GetReceiptNumber["ReceiptNumber"];
+            
+            if($latestProductCode == $product_code){
+                $ReceiptLineNumberPlus = $ReceiptLineNumberPlus;
+            }else{
+                $ReceiptLineNumberPlus = $ReceiptLineNumberPlus + 1;
+            }
+            
         $array = explode("\r\n", $_POST["items"]);
-        $items_array = array_unique($array);        
-        $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', $jobNumber, '$ReceiptLineNumberPlus', '".implode("'),('", $items_array)."' )"; 
-        $result = sqlsrv_query ($conn, $inset);
+        $items_array = array_unique($array);
+        $quantity_enter = count($items_array);
+      
+        for($i=0; $i < $quantity_enter;){
+            $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
+            VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', ' $items_array[$i]')"; 
+            $result = sqlsrv_query ($conn, $inset);
+            $i++;
+            $latestCodePlus++;
+        }
+
+        $inset_receiptLine = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceivedQuantity) 
+        VALUES ('$latestCodeNumberPlus', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter')";
+        $result = sqlsrv_query($conn, $inset_receiptLine);
     }
 ?>
 
@@ -104,7 +137,7 @@
                         
                         <p class="font-bold text-sm mt-3">Quantity saved..</p>
                         <div class="flex items-baseline mt-2">
-                            <p>Hey! congratulations.. you saved today (#) </p>
+                            <p>Hey! congratulations.. you saved today <?php echo $quantity_enter ?> </p>
                         </div>
                         
 
