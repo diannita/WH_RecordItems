@@ -7,9 +7,6 @@
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
 
-    $error = '';
-    $output = '';
-
     // Get the latest Code Number from Table Item and increment
     $latestCode_query = "SELECT TOP 1 Code FROM Item ORDER BY Code DESC";
     $result = sqlsrv_query ($conn, $latestCode_query);
@@ -19,60 +16,73 @@
 
     $quantity_enter = 0;
 
-    // Get the latest Code Number from Table ReceiptLine and increment
-    $latestCodeNumber_query = "SELECT TOP 1 Number FROM ReceiptLine ORDER BY Number DESC";
-    $result = sqlsrv_query ($conn, $latestCodeNumber_query);
-    $latestCodeNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC); 
-    $latestCodeNumberPlus =  $latestCodeNumber["Number"];
-    $latestCodeNumberPlus += 1;
-
     if(isset($_POST['submit'])) {
-        //values to post
+        //values to post from the form
         $owner_code = $_POST['dropdown_owner'];  
         $jobNumber = $_POST['jobNumber'];
         $product_code=$_POST['lista2'];
         $text_items = $_POST['items'];
         $warehouse_code = $_POST['lista1'];
 
-        //Getting ReceiptLineNumber
+        //Getting ReceiptLineNumber from Item table
         $ReceiptLineNumber_query = "SELECT TOP 1 ReceiptLineNumber FROM Item where Item.Owner = $owner_code AND ReceiptNumber = $jobNumber ORDER by code desc";
         $result = sqlsrv_query ($conn, $ReceiptLineNumber_query); 
         $ReceiptLineNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $ReceiptLineNumberPlus =  $ReceiptLineNumber["ReceiptLineNumber"];
+        $ReceiptLineNumberOrig =  $ReceiptLineNumber["ReceiptLineNumber"];
 
-        //Get the lastest ProductCode in BD
+        //Getting Reference for ReceiptLine table
+        $ReceiptHeaderReference_query = "SELECT TOP 1 OwnerReference FROM ReceiptHeader where ReceiptHeader.Owner = $owner_code AND ReceiptHeader.Number = $jobNumber";
+        $result = sqlsrv_query ($conn, $ReceiptHeaderReference_query); 
+        $ReceiptHeaderReference = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $jobNumber_reference =  $ReceiptHeaderReference["OwnerReference"];
+
+        //Get the lastest ProductCode in BD from Item table
         $productCode_query = "SELECT TOP 1 ProductCode FROM Item ORDER by Code desc";
         $result = sqlsrv_query ($conn, $productCode_query);
         $checkProductCode = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
         $latestProductCode = $checkProductCode["ProductCode"];
 
-        //Get the latest JobNumber in BD
+        //Get the Quantity from ReceiptLine table
+        $quantityReceiptLine_query = "SELECT ReceviedQuantity FROM ReceiptLine where ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberPlus";
+        $result = sqlsrv_query ($conn, $quantityReceiptLine_query);
+        $quantityReceiptLine = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $quantity = $checkProductCode["ReceviedQuantity"];
+
+        //Get the latest JobNumber in BD from Item table
         $jobNumber_query = "SELECT TOP 1 ReceiptNumber FROM Item ORDER by Code desc";
         $result = sqlsrv_query ($conn, $jobNumber_query);
         $GetReceiptNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
         $latestReceiptNumber = $GetReceiptNumber["ReceiptNumber"];
             
             if($latestProductCode == $product_code){
-                $ReceiptLineNumberPlus = $ReceiptLineNumberPlus;
+                $ReceiptLineNumberPlus = $ReceiptLineNumberOrig;
             }else{
-                $ReceiptLineNumberPlus = $ReceiptLineNumberPlus + 1;
+                $ReceiptLineNumberPlus = $ReceiptLineNumberOrig + 1;
             }
             
         $array = explode("\r\n", $_POST["items"]);
         $items_array = array_unique($array);
         $quantity_enter = count($items_array);
-      
+
+        if($ReceiptLineNumberPlus = $ReceiptLineNumberOrig){
+
+            $ReceiptLineNumberEntry = "UPDATE ReceiptLine SET DeclaredQuantity = $newQuantity, ReceviedQuantity = $newQuantity WHERE ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberPlus";
+            echo (json_encode($ReceiptLineNumberEntry));
+            $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
+        }else{
+            $ReceiptLineNumberEntry = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceviedQuantity, Reference) 
+            VALUES ('$jobNumber', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter', '$jobNumber_reference')";
+            echo (json_encode($ReceiptLineNumberEntry));
+            $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
+        }
+
         for($i=0; $i < $quantity_enter;){
             $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
-            VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', ' $items_array[$i]')"; 
+            VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', ' $items_array[$i]')";
             $result = sqlsrv_query ($conn, $inset);
             $i++;
             $latestCodePlus++;
         }
-
-        $inset_receiptLine = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceivedQuantity) 
-        VALUES ('$latestCodeNumberPlus', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter')";
-        $result = sqlsrv_query($conn, $inset_receiptLine);
     }
 ?>
 
@@ -162,7 +172,7 @@
                 </div>
 
                 <div align="center" style="padding-top:50px;">
-                <table class="table table-hover w-50">
+                <!-- <table class="table table-hover w-50">
                     <thead class="thead-dark">
                         <tr>
                             <th scope="col">Item(s) Scanned</th>
@@ -174,7 +184,7 @@
                             <th scope="row"><?php echo $output; ?></th>
                         </tr>
                     </tbody>
-                </table>
+                </table> -->
             </div>
         </div>
         <!-- Component End  -->
