@@ -3,9 +3,9 @@
     include ('Configuration/config.php');
 
     //Shows Php errors
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
+    // ini_set('display_errors', 1);
+    // ini_set('display_startup_errors', 1);
+    // error_reporting(E_ALL);
 
     // Get the latest Code Number from Table Item and increment
     $latestCode_query = "SELECT TOP 1 Code FROM Item ORDER BY Code DESC";
@@ -38,7 +38,7 @@
         $jobNumber_reference =  $ReceiptHeaderReference["OwnerReference"];
 
         //Get the lastest ProductCode in BD from Item table
-        $productCode_query = "SELECT TOP 1 ProductCode FROM Item ORDER by Code desc";
+        $productCode_query = "SELECT TOP 1 ProductCode FROM Item where ReceiptNumber = $jobNumber ORDER by Code desc";
         $result = sqlsrv_query ($conn, $productCode_query);
         $checkProductCode = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
         $latestProductCode = $checkProductCode["ProductCode"];
@@ -69,7 +69,8 @@
         //This varable counts the number inserted (quantity) 
         $quantity_enter = count($items_array);
 
-        if($ReceiptLineNumberPlus = $ReceiptLineNumberOrig){
+        //Update the ReceiptLine agains $ReceiptLineNumberPlus - Table ReceiptLine
+        if($ReceiptLineNumberPlus == $ReceiptLineNumberOrig){
             $newQuantity = $quantity_enter + $quantity;
             $ReceiptLineNumberEntry = "UPDATE ReceiptLine SET DeclaredQuantity = $newQuantity, ReceviedQuantity = $newQuantity WHERE ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberPlus";
             $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
@@ -77,43 +78,19 @@
             $ReceiptLineNumberEntry = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceviedQuantity, Reference) 
             VALUES ('$jobNumber', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter', '$jobNumber_reference')";
             $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
+            echo (json_encode($ReceiptLineNumberEntry));
         }
 
         //This For exploits in multiple rows the number or items to save into the DB. 
         for($i=0; $i < $quantity_enter;){
             $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
-            VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', ' $items_array[$i]')";
+            VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', '$items_array[$i]')";
             $result = sqlsrv_query ($conn, $inset);
             $i++;
             $latestCodePlus++;
         }
     }
 
-    $error ='';
-    $displayTable = '';
-
-    // // Display information from table Items
-    // $displayTable_query = " SELECT SerialNumber FROM Item ORDER BY Code DESC ";
-    // $result = sqlsrv_query ($conn, $displayTable_query);
-    // $num_rows = sqlsrv_num_rows($result);
-
-    // // if($num_rows > 0){
-    //     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
-    //         $displayTable .=' 
-    //         <tr>
-    //             <td>'.$row["SerialNumber"].'</td>
-    //         </tr>
-    //         ';
-    //     }
-        
-    //  }
-//     else{
-//         $displayTable .= '
-//             <tr>
-//                 <td>There are not entry(s)</td>
-//            </tr>
-//          ';
-//    }
 ?>
 
 <!DOCTYPE html>
@@ -133,7 +110,16 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
         
         <title>DG-WH Web Registration Tool</title>
+        <style>
+            .grid-container {
+                display: grid;
+                grid-template-columns: auto auto auto auto auto;
+                gap: 10px;
+                padding: 10px;
+            }
+        </style>
     </head>
+    
     
     <body>
 
@@ -143,11 +129,7 @@
 
                 <div class="flex flex-wrap items-center justify-center w-full max-w-4xl mt-8">
                     <form method="POST" class="form bg-white p-6 my-10 relative "> 
-
-                        <div class="form-group center-div"> <!-- sucessful or error message -->
-                            <label><?php echo $error; ?></label>
-                        </div>
-                
+               
                         <div class="icon bg-blue-600 text-white w-6 h-6 absolute flex items-center justify-center p-5" style="left:-40px"><i class="fal fa-phone-volume fa-fw text-2xl transform -rotate-45"></i></div>
                         <h3 class="text-2xl text-gray-900 font-semibold">Let scan and save your Item(s)!</h3>
                         <p class="text-gray-600"> Please fill the following form</p>
@@ -179,6 +161,10 @@
                         <div class="flex items-baseline mt-2">
                             <p>Hey! congratulations.. you saved today <strong><?php echo $quantity_enter ?></strong> </p>
                         </div>
+
+                        <div class="">
+                            substr_count ( implode( $haystackArray ), $needle );
+                        </div>
                         
 
                         <div class="inline-flex rounded-md shadow-sm mt-10" role="group">
@@ -202,27 +188,18 @@
                 </div>
 
                 <div align="center" style="padding-top:20px;">
-                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">
-                                    Serial Number(s)
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td class="px-6 py-4">
-                                    <?php echo (json_encode($items_array[$i])); ?>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="text-black"> Serial Number(s)</div>
+                        <div class="grid-container border p-2 mt-3 w-full bg-gray-200">
+                            <?php for ($i=0; count($items_array) > $i;){?>
+                                <div class="grid-item">
+                                    <?php echo($items_array[$i]) ;
+                                        $i++; 
+                                    ?> 
+                                </div>
+                            <?php } ?>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
         <!-- Component End  -->
         
 
