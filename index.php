@@ -1,8 +1,8 @@
 <?php
     // Include config conection file
     include ('Configuration/config.php');
-    // include ('Queries/queries.php');
-   
+
+    //Shows Php errors
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
@@ -14,6 +14,7 @@
     $latestCodePlus =  $latestCode["Code"];
     $latestCodePlus += 1;
 
+    //initialization of varable for quantity
     $quantity_enter = 0;
 
     if(isset($_POST['submit'])) {
@@ -43,39 +44,42 @@
         $latestProductCode = $checkProductCode["ProductCode"];
 
         //Get the Quantity from ReceiptLine table
-        $quantityReceiptLine_query = "SELECT ReceviedQuantity FROM ReceiptLine where ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberPlus";
+        $quantityReceiptLine_query = "SELECT ReceviedQuantity FROM ReceiptLine where ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberOrig";
         $result = sqlsrv_query ($conn, $quantityReceiptLine_query);
         $quantityReceiptLine = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $quantity = $checkProductCode["ReceviedQuantity"];
+        $quantity = $quantityReceiptLine["ReceviedQuantity"];
 
         //Get the latest JobNumber in BD from Item table
         $jobNumber_query = "SELECT TOP 1 ReceiptNumber FROM Item ORDER by Code desc";
         $result = sqlsrv_query ($conn, $jobNumber_query);
         $GetReceiptNumber = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
         $latestReceiptNumber = $GetReceiptNumber["ReceiptNumber"];
-            
-            if($latestProductCode == $product_code){
-                $ReceiptLineNumberPlus = $ReceiptLineNumberOrig;
-            }else{
-                $ReceiptLineNumberPlus = $ReceiptLineNumberOrig + 1;
-            }
-            
+        
+        //This conditional checks and adds the ReceiptLineNumber with the productCode (Item table)
+        if($latestProductCode == $product_code){
+            $ReceiptLineNumberPlus = $ReceiptLineNumberOrig;
+        }else{
+            $ReceiptLineNumberPlus = $ReceiptLineNumberOrig + 1;
+        }
+        
+        //Array for items of textarea (takes the multiples items inside of textarea)
         $array = explode("\r\n", $_POST["items"]);
+        //This array checks that is going to be unique item what you insert into the BD
         $items_array = array_unique($array);
+        //This varable counts the number inserted (quantity) 
         $quantity_enter = count($items_array);
 
         if($ReceiptLineNumberPlus = $ReceiptLineNumberOrig){
-
+            $newQuantity = $quantity_enter + $quantity;
             $ReceiptLineNumberEntry = "UPDATE ReceiptLine SET DeclaredQuantity = $newQuantity, ReceviedQuantity = $newQuantity WHERE ReceiptLine.Number = $jobNumber AND ReceiptLine.Owner = $owner_code AND LineNumber = $ReceiptLineNumberPlus";
-            echo (json_encode($ReceiptLineNumberEntry));
             $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
         }else{
             $ReceiptLineNumberEntry = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceviedQuantity, Reference) 
             VALUES ('$jobNumber', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter', '$jobNumber_reference')";
-            echo (json_encode($ReceiptLineNumberEntry));
             $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
         }
 
+        //This For exploits in multiple rows the number or items to save into the DB. 
         for($i=0; $i < $quantity_enter;){
             $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
             VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', ' $items_array[$i]')";
@@ -84,6 +88,32 @@
             $latestCodePlus++;
         }
     }
+
+    $error ='';
+    $displayTable = '';
+
+    // // Display information from table Items
+    // $displayTable_query = " SELECT SerialNumber FROM Item ORDER BY Code DESC ";
+    // $result = sqlsrv_query ($conn, $displayTable_query);
+    // $num_rows = sqlsrv_num_rows($result);
+
+    // // if($num_rows > 0){
+    //     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+    //         $displayTable .=' 
+    //         <tr>
+    //             <td>'.$row["SerialNumber"].'</td>
+    //         </tr>
+    //         ';
+    //     }
+        
+    //  }
+//     else{
+//         $displayTable .= '
+//             <tr>
+//                 <td>There are not entry(s)</td>
+//            </tr>
+//          ';
+//    }
 ?>
 
 <!DOCTYPE html>
@@ -147,7 +177,7 @@
                         
                         <p class="font-bold text-sm mt-3">Quantity saved..</p>
                         <div class="flex items-baseline mt-2">
-                            <p>Hey! congratulations.. you saved today <?php echo $quantity_enter ?> </p>
+                            <p>Hey! congratulations.. you saved today <strong><?php echo $quantity_enter ?></strong> </p>
                         </div>
                         
 
@@ -163,7 +193,7 @@
                             
                             <button type="button" class="py-2 px-4 text-sm font-medium text-white bg-purple-600 rounded-r-md border border-gray-500 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 
                             focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white"
-                            onclick="delete_last_value()">
+                            onclick="global_func_btn()">
                                 Delete Last Item
                             </button>
                         </div>
@@ -171,20 +201,26 @@
                     </form>
                 </div>
 
-                <div align="center" style="padding-top:50px;">
-                <!-- <table class="table table-hover w-50">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th scope="col">Item(s) Scanned</th>
-                        </tr>
-                    </thead>
+                <div align="center" style="padding-top:20px;">
+                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">
+                                    Serial Number(s)
+                                </th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
-                        <tr>
-                            <th scope="row"><?php echo $output; ?></th>
-                        </tr>
-                    </tbody>
-                </table> -->
+                        <tbody>
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td class="px-6 py-4">
+                                    <?php echo (json_encode($items_array[$i])); ?>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <!-- Component End  -->
@@ -192,45 +228,54 @@
 
             <script src="https://unpkg.com/flowbite@1.4.7/dist/flowbite.js"></script>
             <script>
-            // empty the textarea complely
-            function eraseText() {
-                document.getElementById("output").value = "";
-            }
-            
-            // This javascript method is quite easy and blocks the pop up asking for form resubmission on refresh once the form is submitted
-            if ( window.history.replaceState ) {
-                window.history.replaceState( null, null, window.location.href );
-            }
+                // Empty the textarea complely
+                function eraseText() {
+                    document.getElementById("output").value = "";
+                }
+                
+                // This javascript method is quite easy and blocks the pop up asking for form resubmission on refresh once the form is submitted
+                if ( window.history.replaceState ) {
+                    window.history.replaceState( null, null, window.location.href );
+                }
 
-            // this jquery removes all tabs, spaces that we dont need 
-            $(document).ready(function () {
-                $('#output').focusout(function () {
-                    var text = $('#output').val();
-                    text = text.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "");
-                    $(this).val(text);
-                });
-            });
-
-            //This function deletes the last item inside the textarea
-            function delete_last_value() {
-                var lines = $('#output').val().split('\n');
-                $("#output").val(lines.slice(0, -1).join('\n'));
-            }
-
-            //select list that shows warehouse and product from respective owner
-            $(document).ready(function(e){
-                $('#dropdown_owner').change(function(){
-                    $.ajax({
-                    type:"POST",
-                    url:"Queries/select_data.php",
-                    data:"owner=" + $('#dropdown_owner').val(),
-                    beforeSend: function () { },
-                    success:function(owner){
-                        $('#select_list').html(owner);
-                    }
+                // This jquery removes all tabs, spaces that we dont need 
+                $(document).ready(function () {
+                    $('#output').focusout(function () {
+                        var text = $('#output').val();
+                        text = text.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "");
+                        $(this).val(text);
                     });
                 });
-            })
+
+                //This function deletes the last item inside the textarea
+                function delete_last_value() {
+                    var lines = $('#output').val().split('\n');
+                    $("#output").val(lines.slice(0, -2).join('\n'));
+                }
+                //This function will add a return line for items input
+                function return_line(){
+                    
+                }
+                //This is a global function that calls two functions for a single button
+                function global_func_btn() {
+                    delete_last_value();
+                    return_line();
+                }
+
+                //Select list that shows warehouse and product from respective owner
+                $(document).ready(function(e){
+                    $('#dropdown_owner').change(function(){
+                        $.ajax({
+                        type:"POST",
+                        url:"Queries/select_data.php",
+                        data:"owner=" + $('#dropdown_owner').val(),
+                        beforeSend: function () { },
+                        success:function(owner){
+                            $('#select_list').html(owner);
+                        }
+                        });
+                    });
+                })
         </script>
 
     </body>
