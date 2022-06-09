@@ -63,7 +63,7 @@
         }
         
         //Array for items of textarea (takes the multiples items inside of textarea)
-        $array = explode("\r\n", $_POST["items"]);
+        $array = explode("\r\n", trim($_POST["items"]));
         //This array checks that is going to be unique item what you insert into the BD
         $items_array = array_unique($array);
         //This varable counts the number inserted (quantity) 
@@ -155,7 +155,7 @@
                         <br>
 			            <div id="select_list"></div>
 
-                        <div id="lines" class="text-orange-700"></div>
+                        <div id="lines" class="text-orange-700 pt-5"></div>
                         <textarea name="items" id='output' rows="10" placeholder="Add your item(s) here!" class="resize-none border p-2 mt-3 w-full bg-gray-100" required autofocus></textarea>
                     
                         <p class="font-bold text-sm mt-3">Quantity saved..</p>
@@ -175,7 +175,7 @@
                             
                             <button type="button" class="py-2 px-4 text-sm font-medium text-white bg-purple-600 rounded-r-md border border-gray-500 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 
                             focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white"
-                            onclick="global_func_btn()">
+                            onclick="delete_last_value()">
                                 Delete Last Item
                             </button>
                         </div>
@@ -215,7 +215,7 @@
                 $(document).ready(function () {
                     $('#output').focusout(function () {
                         var text = $('#output').val();
-                        text = text.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "");
+                        text = text.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "") + "\r\n";
                         $(this).val(text);
                     });
                 });
@@ -223,16 +223,7 @@
                 //This function deletes the last item inside the textarea
                 function delete_last_value() {
                     var lines = $('#output').val().split('\n');
-                    $("#output").val(lines.slice(0, -2).join('\n'));
-                }
-                //This function will add a return line for items input
-                function return_line(){
-                    
-                }
-                //This is a global function that calls two functions for a single button
-                function global_func_btn() {
-                    delete_last_value();
-                    return_line();
+                    $("#output").val(lines.slice(0, -2).join('\n') + "\r\n");
                 }
 
                 //Select list that shows warehouse and product from respective owner
@@ -257,8 +248,8 @@
                     textarea.addEventListener('input', () => {
                     const text = textarea.value;
                     const lines = text.split("\n");
-                    const count = lines.length;
-                    document.getElementById("lines").innerHTML = "There are <strong>" + count + "</strong> Lines in the text area";
+                    const count = lines.length - 1;
+                    document.getElementById("lines").innerHTML = "Quantity <strong>" + count + "</strong>";
                 })
             </script>
 
