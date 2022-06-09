@@ -78,7 +78,6 @@
             $ReceiptLineNumberEntry = "INSERT INTO ReceiptLine (ReceiptLine.Number, ReceiptLine.Owner, LineNumber, ProductCode, DeclaredQuantity, ReceviedQuantity, Reference) 
             VALUES ('$jobNumber', '$owner_code', '$ReceiptLineNumberPlus', '$product_code', '$quantity_enter', '$quantity_enter', '$jobNumber_reference')";
             $result = sqlsrv_query ($conn, $ReceiptLineNumberEntry);
-            echo (json_encode($ReceiptLineNumberEntry));
         }
 
         //This For exploits in multiple rows the number or items to save into the DB. 
@@ -108,6 +107,7 @@
 
         <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
         
         <title>DG-WH Web Registration Tool</title>
         <style>
@@ -154,18 +154,14 @@
                         </div>
                         <br>
 			            <div id="select_list"></div>
-                       
-                        <textarea name="items" id='output' cols="10" rows="10" placeholder="Add your item(s) here!" class="resize-none border p-2 mt-3 w-full bg-gray-100" required autofocus></textarea>
-                        
+
+                        <div id="lines" class="text-orange-700"></div>
+                        <textarea name="items" id='output' rows="10" placeholder="Add your item(s) here!" class="resize-none border p-2 mt-3 w-full bg-gray-100" required autofocus></textarea>
+                    
                         <p class="font-bold text-sm mt-3">Quantity saved..</p>
                         <div class="flex items-baseline mt-2">
                             <p>Hey! congratulations.. you saved today <strong><?php echo $quantity_enter ?></strong> </p>
                         </div>
-
-                        <div class="">
-                            substr_count ( implode( $haystackArray ), $needle );
-                        </div>
-                        
 
                         <div class="inline-flex rounded-md shadow-sm mt-10" role="group">
                             <input type="submit" value="Save All Item(s)" name="submit" class="py-2 px-4 text-sm font-medium text-white bg-teal-600 rounded-l-lg border border-gray-500 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 
@@ -252,8 +248,19 @@
                         }
                         });
                     });
+                }) 
+            </script>
+
+            <!-- This script counts the number of lines of the textarea -->
+            <script>
+                const textarea = document.querySelector('textarea')
+                    textarea.addEventListener('input', () => {
+                    const text = textarea.value;
+                    const lines = text.split("\n");
+                    const count = lines.length;
+                    document.getElementById("lines").innerHTML = "There are <strong>" + count + "</strong> Lines in the text area";
                 })
-        </script>
+            </script>
 
     </body>
 
