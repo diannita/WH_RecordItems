@@ -67,10 +67,10 @@
                                     <?php echo($items_array[$i]) ;
                                         $i++; 
                                     ?> 
-                                </div>
-                            <?php } ?>
                         </div>
+                        <?php } ?>
                     </div>
                 </div>
+        </div>
         <!-- Component End  -->
-    </body>
+</body>
