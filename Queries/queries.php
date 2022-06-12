@@ -84,7 +84,7 @@ if(isset($_POST['submit'])) {
     //This For exploits in multiple rows the number or items to save into the DB. 
     for($i=0; $i < $quantity_enter;){
         $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
-        VALUES ('$latestCodePlus', '$product_code', '$warehouse_code', '1', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', '$items_array[$i]')";
+        VALUES ('$latestCodePlus', '$product_code', '1', '$warehouse_code', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', '$items_array[$i]')";
         $result = sqlsrv_query ($conn, $inset);
         $i++;
         $latestCodePlus++;
