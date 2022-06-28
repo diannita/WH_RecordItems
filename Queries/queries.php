@@ -25,6 +25,7 @@ if(isset($_POST['submit'])) {
     $product_code=$_POST['lista2'];
     $text_items = $_POST['items'];
     $warehouse_code = $_POST['lista1'];
+    $dropdown_location = $_POST['lista4'];
 
     //Getting ReceiptLineNumber from Item table
     $ReceiptLineNumber_query = "SELECT TOP 1 ReceiptLineNumber FROM Item where Item.Owner = $owner_code AND ReceiptNumber = $jobNumber ORDER by code desc";
@@ -84,7 +85,7 @@ if(isset($_POST['submit'])) {
     //This For exploits in multiple rows the number or items to save into the DB. 
     for($i=0; $i < $quantity_enter;){
         $inset = "INSERT INTO Item (Code, ProductCode, StatusCode, WarehouseCode, LocationCode, Product.Owner, ReceiptNumber, ReceiptLineNumber, SerialNumber) 
-        VALUES ('$latestCodePlus', '$product_code', '1', '$warehouse_code', 2317, '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', '$items_array[$i]')";
+        VALUES ('$latestCodePlus', '$product_code', '1', '$warehouse_code', '$dropdown_location', '$owner_code', '$jobNumber', '$ReceiptLineNumberPlus', '$items_array[$i]')";
         $result = sqlsrv_query ($conn, $inset);
         $i++;
         $latestCodePlus++;

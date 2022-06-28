@@ -31,6 +31,11 @@
                         <br>
 			            <div id="select_list"></div>
 
+                        <!-- <div class="flex space-x-2 mt-3">
+                            <select class="border p-2 w-full focus:text-gray-600 focus:bg-white focus:border-blue-600 bg-gray-100" name="dropdown_location" id="dropdown_location" required>
+                            </select>
+                        </div> -->
+
                         <div id="lines" class="text-orange-700 pt-5"></div>
                         <textarea name="items" id='output' rows="10" placeholder="Add your item(s) here!" class="resize-none border p-2 mt-3 w-full bg-gray-100" required autofocus></textarea>
                     

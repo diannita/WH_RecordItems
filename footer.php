@@ -2,7 +2,7 @@
     <script src="https://unpkg.com/flowbite@1.4.7/dist/flowbite.js"></script>
     
     <script>
-    // Empty the textarea complely
+    // Empty the textarea completely
         function eraseText() {
             document.getElementById("output").value = "";
         }
