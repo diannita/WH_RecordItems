@@ -41,6 +41,7 @@
                 });
             });
         }) 
+         
     </script>
 
     <!-- This script counts the number of lines of the textarea -->
