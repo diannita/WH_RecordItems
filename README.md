@@ -5,6 +5,6 @@ This is a Web Application that records items to DB for your Warehouse. (Configur
 
 :atom:vanilla Javascript
 
-:neckbeard:HTML
+:eye:HTML
 
-:atom:TailwindCSS.
+:brain:TailwindCSS.
